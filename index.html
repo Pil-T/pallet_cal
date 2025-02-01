@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>파렛트 적재 및 상차 계산기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 10px;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input, select {
+            width: calc(100% - 20px);
+            padding: 8px;
+            margin-top: 5px;
+            font-size: 16px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>파렛트 적재 및 상차 계산기</h1>
+        <label for="palletLength">파렛트 길이 (mm):</label>
+        <input type="number" id="palletLength" placeholder="파렛트 길이 입력">
+
+        <label for="palletWidth">파렛트 너비 (mm):</label>
+        <input type="number" id="palletWidth" placeholder="파렛트 너비 입력">
+
+        <h3>박스 종류별 입력</h3>
+        <div id="boxInputs">
+            <div class="boxGroup">
+                <label>박스 길이 (mm):</label>
+                <input type="number" class="boxLength" placeholder="박스 길이 입력">
+                <label>박스 너비 (mm):</label>
+                <input type="number" class="boxWidth" placeholder="박스 너비 입력">
+                <label>박스 높이 (mm):</label>
+                <input type="number" class="boxHeight" placeholder="박스 높이 입력">
+                <label>박스 수량:</label>
+                <input type="number" class="boxQuantity" placeholder="박스 수량 입력">
+            </div>
+        </div>
+        <button onclick="addBoxInput()">박스 추가</button>
+
+        <label for="maxHeight">최대 적재 높이 (mm):</label>
+        <input type="number" id="maxHeight" placeholder="최대 적재 높이 입력">
+
+        <h3>차량 적재함 크기 (mm)</h3>
+        <label for="vehicleLength">차량 적재함 길이:</label>
+        <input type="number" id="vehicleLength" placeholder="차량 적재함 길이 입력">
+
+        <label for="vehicleWidth">차량 적재함 너비:</label>
+        <input type="number" id="vehicleWidth" placeholder="차량 적재함 너비 입력">
+
+        <label for="vehicleHeight">차량 적재함 높이:</label>
+        <input type="number" id="vehicleHeight" placeholder="차량 적재함 높이 입력">
+
+        <button onclick="calculatePalletsAndLoading()">결과보기</button>
+
+        <div class="error" id="error"></div>
+        <table>
+            <tr><th>항목</th><th>결과</th></tr>
+            <tr><td>필요한 파렛트 수량</td><td id="palletsNeeded"></td></tr>
+            <tr><td>파렛트 적재 바닥면적 (작업 공간 포함)</td><td id="palletFloorArea"></td></tr>
+            <tr><td>파렛트 상차 총 용적</td><td id="palletTotalVolume"></td></tr>
+            <tr><td>벌크 상차 총 용적</td><td id="bulkTotalVolume"></td></tr>
+            <tr><td>차량에 벌크로 적재 가능한 총 박스 수량</td><td id="totalBoxesBulk"></td></tr>
+        </table>
+    </div>
+
+    <script>
+        function calculatePalletsAndLoading() {
+            let palletsNeeded = 0;
+            let totalPalletArea = 0;
+            let totalPalletVolume = 0;
+            let bulkTotalVolume = 0;
+            let totalBoxesBulk = 0;
+            let palletLength = parseInt(document.getElementById("palletLength").value) + 100;
+            let palletWidth = parseInt(document.getElementById("palletWidth").value) + 100;
+            let maxHeight = parseInt(document.getElementById("maxHeight").value);
+            
+            document.querySelectorAll(".boxGroup").forEach(box => {
+                const length = parseInt(box.querySelector(".boxLength").value);
+                const width = parseInt(box.querySelector(".boxWidth").value);
+                const height = parseInt(box.querySelector(".boxHeight").value);
+                const quantity = parseInt(box.querySelector(".boxQuantity").value);
+                
+                let option1 = Math.floor(palletLength / length) * Math.floor(palletWidth / width);
+                let option2 = Math.floor(palletLength / width) * Math.floor(palletWidth / length);
+                let boxesPerLayer = Math.max(option1, option2);
+                let maxLayers = Math.floor(maxHeight / height);
+                let totalLayers = Math.ceil(quantity / boxesPerLayer);
+                palletsNeeded += Math.ceil(totalLayers / maxLayers);
+                
+                totalPalletArea += (palletLength * palletWidth) / 1000000 * palletsNeeded;
+                totalPalletVolume += (palletLength * palletWidth * maxHeight) / 1000000000 * palletsNeeded;
+                bulkTotalVolume += (length * width * height * quantity) / 1000000000;
+                totalBoxesBulk += quantity;
+            });
+
+            document.getElementById("palletsNeeded").innerText = palletsNeeded + " 개";
+            document.getElementById("palletFloorArea").innerText = totalPalletArea.toFixed(2) + " m²";
+            document.getElementById("palletTotalVolume").innerText = totalPalletVolume.toFixed(2) + " m³";
+            document.getElementById("bulkTotalVolume").innerText = bulkTotalVolume.toFixed(2) + " m³";
+            document.getElementById("totalBoxesBulk").innerText = totalBoxesBulk + " 개";
+        }
+    </script>
+</body>
+</html>
